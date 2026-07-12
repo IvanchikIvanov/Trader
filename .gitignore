@@ -4,6 +4,10 @@ charts/
 *.csv
 !labels/
 !labels/**/*.csv
+!labels/**/*.jsonl
+# keep screenshot pipeline; large dumps can be local-only if needed
+!labels/inbox/**
+!labels/screenshots/**
 
 # Dependencies
 node_modules/

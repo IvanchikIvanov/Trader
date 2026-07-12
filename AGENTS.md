@@ -42,3 +42,5 @@ Paper only — no live orders. Strategy rules: `docs/trading-brief.md`.
 ## Skills
 
 Grok skills live under `.grok/skills/`. Prefer `loop-triage` for morning signal; pair with `issue-triage`. Use `loop-verifier` before any L2 fix lands. Use `loop-guard` when retrying fixes.
+
+When the user attaches a **chart screenshot** of a крючок: use skill **hook-from-screenshot** — read the image, `python -m trader hook shot|ingest|label`, append gold. Times default **MSK**.

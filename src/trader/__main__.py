@@ -103,11 +103,99 @@ def main(argv: list[str] | None = None) -> int:
         help="CSV with human labels",
     )
 
+    # --- hook from screenshot ---
+    hk = sub.add_parser("hook", help="Save hooks from chart screenshots (not text lines)")
+    hk_sub = hk.add_subparsers(dest="hook_cmd", required=True)
+
+    hk_shot = hk_sub.add_parser("shot", help="Register one screenshot as pending hook")
+    hk_shot.add_argument("image", type=Path, help="Path to PNG/JPG screenshot")
+    hk_shot.add_argument("--symbol", default=None, help="Optional symbol hint e.g. BTCUSDT")
+    hk_shot.add_argument("--tf", default=None, help="Optional TF hint e.g. 15m / 4h / 1D")
+    hk_shot.add_argument("--side", default=None, choices=["long", "short"])
+    hk_shot.add_argument("--note", default="")
+
+    hk_sub.add_parser("ingest", help="Ingest all images from labels/inbox/")
+    hk_sub.add_parser("list", help="List hook cards (pending + labeled)")
+
+    hk_lab = hk_sub.add_parser("label", help="Fill pending card → hooks_gold.csv")
+    hk_lab.add_argument("card_id", help="Card id from hook list")
+    hk_lab.add_argument("--symbol", required=True)
+    hk_lab.add_argument("--tf", required=True, help="15m | 1h | 4h | 1D")
+    hk_lab.add_argument("--side", required=True, choices=["long", "short"])
+    hk_lab.add_argument(
+        "--when",
+        required=True,
+        help='Hook candle open MSK: "2026-07-12 05:00"',
+    )
+    hk_lab.add_argument("--status", default="gold", choices=["gold", "reject"])
+    hk_lab.add_argument("--note", default="")
+
     args = p.parse_args(argv)
     if args.cmd == "backtest":
         return cmd_backtest(args)
     if args.cmd == "labels":
         return cmd_labels(args)
+    if args.cmd == "hook":
+        return cmd_hook(args)
+    return 1
+
+
+def cmd_hook(args: argparse.Namespace) -> int:
+    from trader import hook_shot as hs
+
+    if args.hook_cmd == "shot":
+        card = hs.ingest_file(
+            args.image,
+            symbol=args.symbol,
+            timeframe=args.tf,
+            side=args.side,
+            note=args.note,
+        )
+        print(f"Saved shot → {card.image}")
+        print(f"Card id: {card.id}  status={card.status}")
+        print("Next: open image in chat for agent, or:")
+        print(
+            f'  python -m trader hook label {card.id} '
+            f'--symbol BTCUSDT --tf 15m --side long --when "2026-07-12 05:00"'
+        )
+        return 0
+
+    if args.hook_cmd == "ingest":
+        cards = hs.ingest_inbox_folder()
+        if not cards:
+            print(f"No images in {hs.INBOX_DIR}")
+            print("Drop PNG/JPG screenshots there, then re-run: python -m trader hook ingest")
+            return 0
+        print(f"Ingested {len(cards)} screenshot(s):")
+        for c in cards:
+            print(f"  {c.id}  {c.image}")
+        print("Send screenshots in chat so the agent can read them and run hook label.")
+        return 0
+
+    if args.hook_cmd == "list":
+        hs.print_inbox()
+        return 0
+
+    if args.hook_cmd == "label":
+        try:
+            card = hs.label_card(
+                args.card_id,
+                symbol=args.symbol,
+                timeframe=args.tf,
+                side=args.side,
+                time_msk=args.when,
+                label_status=args.status,
+                note=args.note,
+            )
+        except (KeyError, ValueError) as e:
+            print(f"Error: {e}")
+            return 1
+        print(f"Labeled {card.id}: {card.symbol} {card.side} {card.timeframe} MSK {card.time_msk}")
+        print(f"  UTC open: {card.time_utc}")
+        print(f"  gold → {hs.GOLD_PATH}")
+        print(f"  shot → {card.image}")
+        return 0
+
     return 1
 
 
