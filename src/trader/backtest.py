@@ -18,11 +18,14 @@ class Trade:
     entry_time: pd.Timestamp
     exit_time: pd.Timestamp | None
     entry: float
-    stop: float
-    tp: float
+    stop: float | None
+    tp: float | None
     exit: float | None
-    size: float  # units (contracts/coins notional base)
-    risk_amount: float
+    size: float  # base units (coins)
+    risk_amount: float  # reference for R (stake or equity*risk%)
+    notional: float = 0.0
+    leverage: float = 1.0
+    stake: float = 0.0
     pnl: float = 0.0
     r_multiple: float = 0.0
     exit_reason: ExitReason | None = None
@@ -74,19 +77,37 @@ class BacktestResult:
 @dataclass
 class BacktestConfig:
     starting_equity: float = 10_000.0
-    risk_pct: float = 0.005  # 0.5% per trade paper default
-    rr_target: float = 2.0  # 1:2
+    risk_pct: float = 0.005  # used when stake_usd is None
+    rr_target: float = 2.0  # TP distance = rr * hook risk unit (if use_tp)
     stop_buffer_pct: float = 0.0005
     require_htf_bias: bool = True
     one_position: bool = True
     max_bars_in_trade: int = 96  # 15m * 96 = 24h safety flat
+    # Fixed-stake mode (margin)
+    stake_usd: float | None = None  # e.g. 30
+    leverage: float = 1.0  # e.g. 10 → notional = stake * leverage
+    use_stop: bool = True
+    use_tp: bool = True
 
 
-def _position_size(equity: float, risk_pct: float, risk_per_unit: float) -> float:
+def _position_size_risk(equity: float, risk_pct: float, risk_per_unit: float) -> tuple[float, float]:
+    """Return (size, risk_amount) from equity risk %."""
     if risk_per_unit <= 0:
-        return 0.0
+        return 0.0, 0.0
     risk_amount = equity * risk_pct
-    return risk_amount / risk_per_unit
+    return risk_amount / risk_per_unit, risk_amount
+
+
+def _position_size_stake(entry: float, stake_usd: float, leverage: float) -> tuple[float, float, float]:
+    """
+    Return (size, notional, stake).
+    size = notional / entry; notional = stake * leverage.
+    """
+    if entry <= 0 or stake_usd <= 0 or leverage <= 0:
+        return 0.0, 0.0, 0.0
+    notional = stake_usd * leverage
+    size = notional / entry
+    return size, notional, stake_usd
 
 
 def run_backtest(
@@ -121,9 +142,10 @@ def run_backtest(
         close = float(bar["close"])
         t = bar["close_time"]
 
-        # manage open position on this bar (after entry bar)
         if open_trade is not None and entry_index is not None and i > entry_index:
-            exit_px, reason = _check_exit(open_trade, high, low, close, bars_held=i - entry_index, cfg=cfg)
+            exit_px, reason = _check_exit(
+                open_trade, high, low, close, bars_held=i - entry_index, cfg=cfg
+            )
             if exit_px is not None and reason is not None:
                 _close_trade(open_trade, exit_px, t, reason)
                 equity += open_trade.pnl
@@ -132,33 +154,48 @@ def run_backtest(
                 open_trade = None
                 entry_index = None
 
-        # new signal on closed bar — enter at close (same as rules)
         if open_trade is None and i in by_index:
             sig: HookSignal = by_index[i]
-            size = _position_size(equity, cfg.risk_pct, sig.risk_per_unit)
+            if cfg.stake_usd is not None:
+                size, notional, stake = _position_size_stake(
+                    sig.entry, cfg.stake_usd, cfg.leverage
+                )
+                risk_amount = stake  # R = pnl / stake
+            else:
+                size, risk_amount = _position_size_risk(
+                    equity, cfg.risk_pct, sig.risk_per_unit
+                )
+                notional = size * sig.entry
+                stake = risk_amount
+
             if size <= 0:
                 continue
-            if sig.side == "long":
-                tp = sig.entry + cfg.rr_target * sig.risk_per_unit
-            else:
-                tp = sig.entry - cfg.rr_target * sig.risk_per_unit
+
+            stop: float | None = sig.stop if cfg.use_stop else None
+            tp: float | None = None
+            if cfg.use_tp and sig.risk_per_unit > 0:
+                if sig.side == "long":
+                    tp = sig.entry + cfg.rr_target * sig.risk_per_unit
+                else:
+                    tp = sig.entry - cfg.rr_target * sig.risk_per_unit
+
             open_trade = Trade(
                 side=sig.side,
                 entry_time=sig.time,
                 exit_time=None,
                 entry=sig.entry,
-                stop=sig.stop,
+                stop=stop,
                 tp=tp,
                 exit=None,
                 size=size,
-                risk_amount=equity * cfg.risk_pct,
+                risk_amount=risk_amount,
+                notional=notional,
+                leverage=cfg.leverage if cfg.stake_usd is not None else 1.0,
+                stake=stake,
                 symbol=symbol,
             )
             entry_index = i
-            if not cfg.one_position:
-                pass  # reserved
 
-    # force flat at end of series (paper EOD)
     if open_trade is not None and entry_index is not None:
         last = df_15m.iloc[-1]
         _close_trade(open_trade, float(last["close"]), last["close_time"], "eod")
@@ -183,16 +220,14 @@ def _check_exit(
         return close, "timeout"
 
     if trade.side == "long":
-        # conservative: stop before tp if both touched
-        if low <= trade.stop:
+        if cfg.use_stop and trade.stop is not None and low <= trade.stop:
             return trade.stop, "sl"
-        if high >= trade.tp:
+        if cfg.use_tp and trade.tp is not None and high >= trade.tp:
             return trade.tp, "tp"
-        # structure = stop already is hook low
     else:
-        if high >= trade.stop:
+        if cfg.use_stop and trade.stop is not None and high >= trade.stop:
             return trade.stop, "sl"
-        if low <= trade.tp:
+        if cfg.use_tp and trade.tp is not None and low <= trade.tp:
             return trade.tp, "tp"
     return None, None
 

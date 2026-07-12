@@ -78,11 +78,14 @@ def plot_backtest(
     exit_t, exit_p, exit_txt, exit_color = [], [], [], []
 
     for i, t in enumerate(trades):
+        stop_s = f"{t.stop:.2f}" if t.stop is not None else "off"
+        tp_s = f"{t.tp:.2f}" if t.tp is not None else "off"
         hover = (
             f"#{i+1} {t.side.upper()}<br>"
-            f"entry={t.entry:.2f} stop={t.stop:.2f} tp={t.tp:.2f}<br>"
+            f"entry={t.entry:.2f} stop={stop_s} tp={tp_s}<br>"
             f"exit={t.exit} ({t.exit_reason})<br>"
             f"pnl={t.pnl:+.2f} R={t.r_multiple:+.2f}"
+            + (f"<br>stake={t.stake:.0f} lev={t.leverage:.0f}x" if t.stake else "")
         )
         if t.side == "long":
             long_e_t.append(t.entry_time)
@@ -116,31 +119,33 @@ def plot_backtest(
                 row=1,
                 col=1,
             )
-            # SL / TP horizontal during trade
-            fig.add_trace(
-                go.Scatter(
-                    x=[t.entry_time, t.exit_time],
-                    y=[t.stop, t.stop],
-                    mode="lines",
-                    line=dict(color="rgba(239,83,80,0.45)", width=1, dash="dash"),
-                    hoverinfo="skip",
-                    showlegend=False,
-                ),
-                row=1,
-                col=1,
-            )
-            fig.add_trace(
-                go.Scatter(
-                    x=[t.entry_time, t.exit_time],
-                    y=[t.tp, t.tp],
-                    mode="lines",
-                    line=dict(color="rgba(38,166,154,0.45)", width=1, dash="dash"),
-                    hoverinfo="skip",
-                    showlegend=False,
-                ),
-                row=1,
-                col=1,
-            )
+            # SL / TP horizontal during trade (if enabled)
+            if t.stop is not None:
+                fig.add_trace(
+                    go.Scatter(
+                        x=[t.entry_time, t.exit_time],
+                        y=[t.stop, t.stop],
+                        mode="lines",
+                        line=dict(color="rgba(239,83,80,0.45)", width=1, dash="dash"),
+                        hoverinfo="skip",
+                        showlegend=False,
+                    ),
+                    row=1,
+                    col=1,
+                )
+            if t.tp is not None:
+                fig.add_trace(
+                    go.Scatter(
+                        x=[t.entry_time, t.exit_time],
+                        y=[t.tp, t.tp],
+                        mode="lines",
+                        line=dict(color="rgba(38,166,154,0.45)", width=1, dash="dash"),
+                        hoverinfo="skip",
+                        showlegend=False,
+                    ),
+                    row=1,
+                    col=1,
+                )
 
     if long_e_t:
         fig.add_trace(
