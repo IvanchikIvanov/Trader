@@ -27,10 +27,27 @@ python -m pip install -r requirements.txt
 python -m trader backtest --symbol BTCUSDT --days 30
 ```
 
-### ETH + свой риск + CSV сделок
+### ETH + свой риск + CSV + график
 
 ```bash
-python -m trader backtest --symbol ETHUSDT --days 60 --risk-pct 0.005 --rr 2 --csv-out data/eth_trades.csv
+python -m trader backtest --symbol ETHUSDT --days 60 --risk-pct 0.005 --rr 2 --csv-out data/eth_trades.csv --open
+```
+
+После прогона открывается (или сохраняется) **интерактивный HTML**:
+
+- свечи 15m  
+- ▲ long / ▼ short — входы  
+- ✕ — выходы (цвет: профит/убыток)  
+- пунктир: stop (красный) и TP (бирюзовый)  
+- снизу — equity  
+- rangeslider — зум участка для подстройки правил  
+
+Файлы по умолчанию: `charts/btcusdt_30d.html` и т.п.
+
+Чтобы смотреть только хвост (удобнее крутить):
+
+```bash
+python -m trader backtest --symbol BTCUSDT --days 30 --chart-bars 400 --open
 ```
 
 | Флаг | Смысл | Default |
@@ -42,6 +59,9 @@ python -m trader backtest --symbol ETHUSDT --days 60 --risk-pct 0.005 --rr 2 --c
 | `--rr` | Цель в R (2 = 1:2) | 2 |
 | `--no-htf` | Без фильтра 1h/4h bias | off |
 | `--csv-out` | Сохранить сделки | — |
+| `--chart PATH` | HTML-график (если не указан — auto в `charts/`) | auto |
+| `--chart-bars N` | Рисовать только последние N баров 15m | all |
+| `--open` | Открыть график в браузере | off |
 
 Данные: **Binance USDT-M futures public API** — без API key и без депозита.
 

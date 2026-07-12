@@ -10,9 +10,11 @@ Trading-related project scaffolded with [Loop Engineering](https://github.com/co
 
 ```bash
 python -m pip install -r requirements.txt
+$env:PYTHONPATH = "src"
 python -m pytest tests/ -q
-python -m trader backtest --symbol BTCUSDT --days 30
-python -m trader backtest --symbol ETHUSDT --days 60 --rr 2 --csv-out data/eth_trades.csv
+python -m trader backtest --symbol BTCUSDT --days 30 --open
+# chart → charts/btcusdt_30d.html  (entries ▲▼, exits ✕, SL/TP, equity)
+python -m trader backtest --symbol ETHUSDT --days 60 --rr 2 --chart-bars 500 --open
 ```
 
 ## Loop Engineering

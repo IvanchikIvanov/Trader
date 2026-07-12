@@ -22,6 +22,25 @@ def main(argv: list[str] | None = None) -> int:
     b.add_argument("--rr", type=float, default=2.0, help="Take profit R multiple (2 = 1:2)")
     b.add_argument("--no-htf", action="store_true", help="Ignore 1h/4h bias filter")
     b.add_argument("--csv-out", type=Path, default=None, help="Write trades CSV")
+    b.add_argument(
+        "--chart",
+        type=Path,
+        nargs="?",
+        const=Path("charts/backtest.html"),
+        default=None,
+        help="Write interactive HTML chart (default path: charts/backtest.html)",
+    )
+    b.add_argument(
+        "--chart-bars",
+        type=int,
+        default=None,
+        help="Only plot last N 15m bars (easier to tune; trades outside window hidden)",
+    )
+    b.add_argument(
+        "--open",
+        action="store_true",
+        help="Open chart in browser after save",
+    )
 
     args = p.parse_args(argv)
     if args.cmd == "backtest":
@@ -82,6 +101,24 @@ def cmd_backtest(args: argparse.Namespace) -> int:
         args.csv_out.parent.mkdir(parents=True, exist_ok=True)
         pd.DataFrame(rows).to_csv(args.csv_out, index=False)
         print(f"\nWrote {args.csv_out}")
+
+    chart_path = args.chart
+    if chart_path is None:
+        # default: always write chart for visual tuning
+        chart_path = Path("charts") / f"{args.symbol.lower()}_{args.days}d.html"
+    from trader.chart import save_chart
+
+    out = save_chart(
+        df_15,
+        result,
+        chart_path,
+        symbol=args.symbol,
+        max_bars=args.chart_bars,
+        open_browser=args.open,
+    )
+    print(f"\nChart: {out.resolve()}")
+    print("  ▲ green = long entry · ▼ red = short entry · ✕ = exit")
+    print("  dashed red = stop · dashed teal = TP · zoom with rangeslider")
 
     print("\nReminder: this is simulation only. Fees/slippage not fully modeled.")
     return 0
