@@ -48,6 +48,7 @@ Deep pullbacks (**~30–40% of impulse**) can still be valid if structure is imp
 Example write-ups:
 
 - [`docs/cases/syn-1h-long-hook.md`](cases/syn-1h-long-hook.md)  
+- [`docs/cases/syn-1d-two-long-hooks.md`](cases/syn-1d-two-long-hooks.md) — two daily long hooks; missed wick hook + deeper current hook  
 - [`docs/cases/hypeusdt-4h-long-hook.md`](cases/hypeusdt-4h-long-hook.md) — clean long hook + follow-through (agent gold structure)
 
 ---
