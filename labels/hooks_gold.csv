@@ -1,0 +1,8 @@
+# Human-labeled крючки (gold set). Used to tune detector vs your eye.
+# time_utc = open time of the HOOK candle on entry TF (15m), ISO UTC
+# side = long | short
+# symbol = BTCUSDT | ETHUSDT
+# note = free text
+# status = gold | reject (reject = looks like hook but you say NO)
+symbol,time_utc,side,timeframe,status,note
+BTCUSDT,2026-07-09T05:15:00+00:00,long,15m,gold,first gold long hook from chart review (user)

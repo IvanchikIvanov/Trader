@@ -2,6 +2,8 @@
 data/
 charts/
 *.csv
+!labels/
+!labels/**/*.csv
 
 # Dependencies
 node_modules/
