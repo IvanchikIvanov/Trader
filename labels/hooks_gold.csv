@@ -1,12 +1,9 @@
 # Human-labeled крючки (gold set). Used to tune detector vs your eye.
 # time_utc = open time of the HOOK candle on entry TF (15m), ISO UTC
-# side = long | short
-# symbol = BTCUSDT | ETHUSDT
-# note = free text
-# status = gold | reject (reject = looks like hook but you say NO)
-# user_said = original time string from human (may differ from open if close-time labeling)
-symbol,time_utc,side,timeframe,status,user_said,note
-BTCUSDT,2026-07-09T05:15:00+00:00,long,15m,gold,9 июля 05:15,first gold long from chart review
-BTCUSDT,2026-07-03T11:30:00+00:00,long,15m,gold,3 июля 11.45,user 11.45 → 15m open 11:30 UTC (red close ~11:45); confirm TZ
-BTCUSDT,2026-07-03T17:00:00+00:00,long,15m,gold,3 июля 17.00,as stated open 17:00 UTC — bar is GREEN in Binance data; confirm candle
-BTCUSDT,2026-07-04T19:00:00+00:00,long,15m,gold,4 июля 19.00,as stated open 19:00 UTC — bar is GREEN; nearby reds 18:15-18:30
+# Human times are MOSCOW (Europe/Moscow, UTC+3) unless noted otherwise.
+# side = long | short | status = gold | reject
+symbol,time_utc,side,timeframe,status,user_said_msk,note
+BTCUSDT,2026-07-09T02:15:00+00:00,long,15m,gold,9 июля 05:15 MSK,red bar; detector MISS — tune HH rule
+BTCUSDT,2026-07-03T08:45:00+00:00,long,15m,gold,3 июля 11:45 MSK,red; detector HIT
+BTCUSDT,2026-07-03T14:00:00+00:00,long,15m,gold,3 июля 17:00 MSK,red; detector HIT
+BTCUSDT,2026-07-04T16:00:00+00:00,long,15m,gold,4 июля 19:00 MSK,red; detector MISS — tune
