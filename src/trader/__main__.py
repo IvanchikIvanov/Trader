@@ -42,10 +42,57 @@ def main(argv: list[str] | None = None) -> int:
         help="Open chart in browser after save",
     )
 
+    lab = sub.add_parser("labels", help="Audit human gold hooks vs detector")
+    lab.add_argument(
+        "--file",
+        type=Path,
+        default=Path("labels/hooks_gold.csv"),
+        help="CSV with human labels",
+    )
+
     args = p.parse_args(argv)
     if args.cmd == "backtest":
         return cmd_backtest(args)
+    if args.cmd == "labels":
+        return cmd_labels(args)
     return 1
+
+
+def cmd_labels(args: argparse.Namespace) -> int:
+    from trader.labels import audit_labels
+
+    path = args.file
+    if not path.exists():
+        print(f"File not found: {path}")
+        return 1
+    print(f"Auditing {path} …")
+    rows = audit_labels(path)
+    hits = misses = false_pos = ok_rej = nobar = 0
+    for r in rows:
+        print(
+            f"  {r['verdict']:10} {r['symbol']} {r['side']:5} {r['time_utc']} "
+            f"detected={r['detected']} bar={r['bar_found']}  {r.get('note','')}"
+        )
+        v = r["verdict"]
+        if v == "HIT":
+            hits += 1
+        elif v == "MISS":
+            misses += 1
+        elif v == "FALSE_POS":
+            false_pos += 1
+        elif v == "OK_REJECT":
+            ok_rej += 1
+        elif v == "NO_BAR":
+            nobar += 1
+    print(
+        f"\nSummary: HIT={hits} MISS={misses} FALSE_POS={false_pos} "
+        f"OK_REJECT={ok_rej} NO_BAR={nobar}"
+    )
+    if misses:
+        print("MISS = you marked gold, detector skipped → relax/fix rules")
+    if false_pos:
+        print("FALSE_POS = you rejected, detector fired → tighten rules")
+    return 0
 
 
 def cmd_backtest(args: argparse.Namespace) -> int:

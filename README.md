@@ -4,7 +4,8 @@ Trading-related project scaffolded with [Loop Engineering](https://github.com/co
 
 **→ [Как оптимально использовать](docs/GUIDE.md)** — ежедневный ритуал, L1→L3, бюджет, safety, cheat sheet.  
 **→ [Trading brief](docs/trading-brief.md)** — BTC/ETH futures, intraday, pattern **крючки (hooks)** long + short.  
-**→ [Тест без депозита](docs/paper-testing.md)** — paper backtest на истории Binance.
+**→ [Тест без депозита](docs/paper-testing.md)** — paper backtest на истории Binance.  
+**→ [Разметка крючков](docs/labeling-hooks.md)** — как передать «эта свеча = крючок».
 
 ### Paper backtest (no deposit, no API keys)
 
