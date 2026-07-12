@@ -4,5 +4,9 @@
 # symbol = BTCUSDT | ETHUSDT
 # note = free text
 # status = gold | reject (reject = looks like hook but you say NO)
-symbol,time_utc,side,timeframe,status,note
-BTCUSDT,2026-07-09T05:15:00+00:00,long,15m,gold,first gold long hook from chart review (user)
+# user_said = original time string from human (may differ from open if close-time labeling)
+symbol,time_utc,side,timeframe,status,user_said,note
+BTCUSDT,2026-07-09T05:15:00+00:00,long,15m,gold,9 июля 05:15,first gold long from chart review
+BTCUSDT,2026-07-03T11:30:00+00:00,long,15m,gold,3 июля 11.45,user 11.45 → 15m open 11:30 UTC (red close ~11:45); confirm TZ
+BTCUSDT,2026-07-03T17:00:00+00:00,long,15m,gold,3 июля 17.00,as stated open 17:00 UTC — bar is GREEN in Binance data; confirm candle
+BTCUSDT,2026-07-04T19:00:00+00:00,long,15m,gold,4 июля 19.00,as stated open 19:00 UTC — bar is GREEN; nearby reds 18:15-18:30
