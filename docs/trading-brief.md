@@ -15,9 +15,10 @@
 
 | | |
 |--|--|
-| **Asset class** | Crypto **futures** |
-| **Symbols** | **BTC** and **ETH** (e.g. BTCUSDT / ETHUSDT perps — venue TBD) |
-| **Style** | **Intraday** |
+| **Asset class** | Crypto (futures preferred for bot; spot possible for manual) |
+| **Core symbols (bot v0)** | **BTC** and **ETH** USDT-M perps |
+| **Manual / cases** | e.g. **SYN 1H** — same hook logic; see `docs/cases/` |
+| **Style** | Intraday on 15m (BTC/ETH); higher-TF hooks (1H) allowed when you mark them |
 | **Venue** | TBD |
 | **Sides** | **Long hooks** and **short hooks** |
 
@@ -25,10 +26,26 @@
 
 | Role | TF |
 |------|-----|
-| Context / trend | **4h**, **1h** |
-| Setup / entry candle | **15m** (primary for hook candle; confirm with higher TF bias) |
+| Context / trend | **4h**, **1h** (and weekly when the hook candle *is* weekly context) |
+| Setup / entry candle (bot default) | **15m** on BTC/ETH |
+| Setup / entry (manual alts) | Often **1H** — same structure: impulse → opposite-color pullback → enter on close |
 
-Use higher TF (1h/4h) for **bias** (up → long hooks only; down → short hooks only). Execute hook logic primarily on **15m**.
+Use higher TF for **bias**. Entry TF is where the **hook candle** lives (15m *or* 1H — you choose; bot currently scans 15m).
+
+### Pattern language (how you describe a long hook)
+
+Same idea whether SYN 1H or BTC 15m:
+
+1. **Impulse** — strong green (new high / large up bar).  
+2. **Hook** — red pullback candle after that impulse.  
+3. **Entry** — only on **close** of the red (not mid-candle).  
+4. **Stop** — under red low (+ optional air).  
+5. **Target** — fixed levels and/or min **1:2–1:3** R:R.  
+
+**Your version vs “classic shallow Ross hook”:**  
+Deep pullbacks (**~30–40% of impulse**) can still be valid if structure is impulse → red close. Do not auto-reject only because the retrace is deep — mark gold/reject by eye, then tune filters.
+
+Example write-up: [`docs/cases/syn-1h-long-hook.md`](cases/syn-1h-long-hook.md).
 
 ---
 
