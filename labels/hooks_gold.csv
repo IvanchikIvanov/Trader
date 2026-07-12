@@ -2,9 +2,10 @@
 # time_utc = open time of the HOOK candle on entry TF (15m), ISO UTC
 # Human times are MOSCOW (Europe/Moscow, UTC+3) unless noted otherwise.
 # side = long | short | status = gold | reject
-symbol,time_utc,side,timeframe,status,user_said_msk,note
-BTCUSDT,2026-07-09T02:15:00+00:00,long,15m,gold,9 июля 05:15 MSK,red bar; detector MISS — tune HH rule
-BTCUSDT,2026-07-03T08:45:00+00:00,long,15m,gold,3 июля 11:45 MSK,red; detector HIT
-BTCUSDT,2026-07-03T14:00:00+00:00,long,15m,gold,3 июля 17:00 MSK,red; detector HIT
-BTCUSDT,2026-07-04T16:00:00+00:00,long,15m,gold,4 июля 19:00 MSK,red; detector MISS — tune
-BTCUSDT,2026-07-12T02:00:00+00:00,long,15m,gold,12 июля 05:00 MSK,user corrected from 26th; long hook
+symbol,time_utc,side,timeframe,status,user_said_msk,note,screenshot
+BTCUSDT,2026-07-09T02:15:00+00:00,long,15m,gold,9 июля 05:15 MSK,red bar; detector MISS — tune HH rule,
+BTCUSDT,2026-07-03T08:45:00+00:00,long,15m,gold,3 июля 11:45 MSK,red; detector HIT,
+BTCUSDT,2026-07-03T14:00:00+00:00,long,15m,gold,3 июля 17:00 MSK,red; detector HIT,
+BTCUSDT,2026-07-04T16:00:00+00:00,long,15m,gold,4 июля 19:00 MSK,red; detector MISS — tune,
+BTCUSDT,2026-07-12T02:00:00+00:00,long,15m,gold,12 июля 05:00 MSK,user corrected from 26th; long hook,
+ETHUSDT,2026-07-12T02:00:00+00:00,long,15m,gold,12 июля 05:00 MSK,TV Bitstamp ETHUSD 15m Screenshot_11; long hook after dump bounce ~1800-1806; detector MISS,labels/screenshots/20260712T212223063354_ETHUSDT_long.png
