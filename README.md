@@ -2,6 +2,8 @@
 
 Trading-related project scaffolded with [Loop Engineering](https://github.com/cobusgreyling/loop-engineering) for Grok agents.
 
+**→ [Как оптимально использовать](docs/GUIDE.md)** — ежедневный ритуал, L1→L3, бюджет, safety, cheat sheet.
+
 ## Loop Engineering
 
 All 7 production patterns are installed (L1 report-only by default).
