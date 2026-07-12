@@ -17,7 +17,7 @@
 |--|--|
 | **Asset class** | Crypto (futures preferred for bot; spot possible for manual) |
 | **Core symbols (bot v0)** | **BTC** and **ETH** USDT-M perps |
-| **Manual / cases** | e.g. **SYN 1H** — same hook logic; see `docs/cases/` |
+| **Manual / cases** | **SYN 1H**, **HYPEUSDT 4H** (Bybit) — same hook logic; see `docs/cases/` |
 | **Style** | Intraday on 15m (BTC/ETH); higher-TF hooks (1H) allowed when you mark them |
 | **Venue** | TBD |
 | **Sides** | **Long hooks** and **short hooks** |
@@ -45,7 +45,10 @@ Same idea whether SYN 1H or BTC 15m:
 **Your version vs “classic shallow Ross hook”:**  
 Deep pullbacks (**~30–40% of impulse**) can still be valid if structure is impulse → red close. Do not auto-reject only because the retrace is deep — mark gold/reject by eye, then tune filters.
 
-Example write-up: [`docs/cases/syn-1h-long-hook.md`](cases/syn-1h-long-hook.md).
+Example write-ups:
+
+- [`docs/cases/syn-1h-long-hook.md`](cases/syn-1h-long-hook.md)  
+- [`docs/cases/hypeusdt-4h-long-hook.md`](cases/hypeusdt-4h-long-hook.md) — clean long hook + follow-through (agent gold structure)
 
 ---
 
