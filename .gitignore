@@ -1,3 +1,7 @@
+# Data / paper outputs
+data/
+*.csv
+
 # Dependencies
 node_modules/
 .venv/

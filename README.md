@@ -3,7 +3,17 @@
 Trading-related project scaffolded with [Loop Engineering](https://github.com/cobusgreyling/loop-engineering) for Grok agents.
 
 **→ [Как оптимально использовать](docs/GUIDE.md)** — ежедневный ритуал, L1→L3, бюджет, safety, cheat sheet.  
-**→ [Trading brief](docs/trading-brief.md)** — BTC/ETH futures, intraday, pattern **крючки (hooks)** long + short.
+**→ [Trading brief](docs/trading-brief.md)** — BTC/ETH futures, intraday, pattern **крючки (hooks)** long + short.  
+**→ [Тест без депозита](docs/paper-testing.md)** — paper backtest на истории Binance.
+
+### Paper backtest (no deposit, no API keys)
+
+```bash
+python -m pip install -r requirements.txt
+python -m pytest tests/ -q
+python -m trader backtest --symbol BTCUSDT --days 30
+python -m trader backtest --symbol ETHUSDT --days 60 --rr 2 --csv-out data/eth_trades.csv
+```
 
 ## Loop Engineering
 

@@ -7,11 +7,15 @@ Trader — loop-engineering multi-pattern workspace (Grok primary).
 ## Test commands
 
 ```bash
-# Fill in when the app exists:
-# npm test
-# npm run lint
-# pytest
+python -m pip install -r requirements.txt
+# If machine has broken pytest plugins (web3): set PYTEST_DISABLE_PLUGIN_AUTOLOAD=1
+$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD = "1"   # PowerShell
+python -m pytest tests/ -q
+$env:PYTHONPATH = "src"
+python -m trader backtest --symbol BTCUSDT --days 30
 ```
+
+Paper only — no live orders. Strategy rules: `docs/trading-brief.md`.
 
 ## Loop conventions
 
