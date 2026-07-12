@@ -1,0 +1,80 @@
+# Machine-readable pattern registry (project copy)
+# Source of truth style: loop-engineering patterns/registry.yaml
+
+patterns:
+  - id: daily-triage
+    name: Daily Triage
+    goal: Prioritized scan of CI, issues, commits, and chat
+    cadence: 1d-2h
+    risk: low
+    week_one_mode: L1
+    token_cost: low
+    state: STATE.md
+    skills: [loop-triage, minimal-fix]
+    human_gates: [design-decisions, multi-file-refactors]
+
+  - id: issue-triage
+    name: Issue Triage
+    goal: Discover, dedupe, prioritize and label issues
+    cadence: 2h-1d
+    risk: low
+    week_one_mode: L1
+    token_cost: low
+    state: issue-triage-state.md
+    skills: [issue-triage, loop-verifier]
+    human_gates: [security, p0-p1, ambiguous-duplicates, stale-closures]
+
+  - id: pr-babysitter
+    name: PR Babysitter
+    goal: Shepherd PRs through review, CI, rebase, and merge
+    cadence: 5m-15m
+    risk: medium
+    week_one_mode: L1
+    token_cost: high
+    state: pr-babysitter-state.md
+    skills: [pr-review-triage, minimal-fix, loop-verifier]
+    human_gates: [security, payments, auth, max-fix-attempts]
+
+  - id: ci-sweeper
+    name: CI Sweeper
+    goal: React to failing CI with minimal fixes and escalation
+    cadence: 5m-15m
+    risk: medium
+    week_one_mode: L1
+    token_cost: very-high
+    state: ci-sweeper-state.md
+    skills: [ci-triage, minimal-fix, loop-verifier]
+    human_gates: [infra-failures, max-attempts, security-tests]
+
+  - id: dependency-sweeper
+    name: Dependency Sweeper
+    goal: Discover and safely apply dependency + vulnerability updates
+    cadence: 6h-1d
+    risk: medium
+    week_one_mode: L1
+    token_cost: medium
+    state: dependency-sweeper-state.md
+    skills: [dependency-triage, minimal-fix, loop-verifier]
+    human_gates: [major-bumps, high-sev-cve, denylisted-packages, max-attempts]
+
+  - id: post-merge-cleanup
+    name: Post-Merge Cleanup
+    goal: Follow-up tech debt after merges to main
+    cadence: 1d-6h
+    risk: low
+    week_one_mode: L1
+    token_cost: low
+    state: post-merge-state.md
+    skills: [post-merge-scan, minimal-fix]
+    human_gates: [architectural-debt, feature-flags, large-diffs]
+
+  - id: changelog-drafter
+    name: Changelog Drafter
+    goal: Draft categorized release notes for human review
+    cadence: 1d
+    risk: low
+    week_one_mode: L1
+    token_cost: low
+    state: changelog-drafter-state.md
+    skills: [changelog-scan, draft-release-notes, loop-verifier]
+    human_gates: [breaking-changes, security, major-features, marketing-sensitive]

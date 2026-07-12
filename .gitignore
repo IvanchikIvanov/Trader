@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.pyc
+.Python
+dist/
+build/
+*.egg-info/
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+**/secrets/
+**/credentials/
+*.pem
+*.key
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Logs & local runtime
+*.log
+.loop-worktrees/
+worktrees/
+
+# Coverage / caches
+coverage/
+.nyc_output/
+.cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+
+# Agent local noise (keep skills; ignore caches if any)
+.grok/cache/
+.claude/cache/
+.codex/cache/
