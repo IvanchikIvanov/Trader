@@ -16,7 +16,19 @@ def main(argv: list[str] | None = None) -> int:
 
     b = sub.add_parser("backtest", help="Run historical paper backtest")
     b.add_argument("--symbol", default="BTCUSDT", help="BTCUSDT or ETHUSDT")
-    b.add_argument("--days", type=int, default=30, help="Lookback days")
+    b.add_argument("--days", type=int, default=30, help="Lookback days (ignored if --date set)")
+    b.add_argument(
+        "--date",
+        type=str,
+        default=None,
+        help="Single UTC day to review, YYYY-MM-DD (e.g. 2026-07-10). Loads pad days before for HTF.",
+    )
+    b.add_argument(
+        "--pad-days",
+        type=int,
+        default=2,
+        help="Extra days of history before --date for HTF/bias (default 2)",
+    )
     b.add_argument("--equity", type=float, default=10_000.0)
     b.add_argument("--risk-pct", type=float, default=0.005, help="Risk per trade, e.g. 0.005 = 0.5%%")
     b.add_argument("--rr", type=float, default=2.0, help="Take profit R multiple (2 = 1:2)")
@@ -35,6 +47,11 @@ def main(argv: list[str] | None = None) -> int:
         type=int,
         default=None,
         help="Only plot last N 15m bars (easier to tune; trades outside window hidden)",
+    )
+    b.add_argument(
+        "--chart-day-only",
+        action="store_true",
+        help="With --date: plot only that calendar day (still backtests with pad history)",
     )
     b.add_argument(
         "--open",
@@ -96,10 +113,21 @@ def cmd_labels(args: argparse.Namespace) -> int:
 
 
 def cmd_backtest(args: argparse.Namespace) -> int:
-    end = datetime.now(timezone.utc)
-    start = end - timedelta(days=args.days)
+    import pandas as pd
+
+    focus_day: datetime | None = None
+    if args.date:
+        focus_day = datetime.strptime(args.date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        start = focus_day - timedelta(days=args.pad_days)
+        end = focus_day + timedelta(days=1)
+        range_tag = args.date
+    else:
+        end = datetime.now(timezone.utc)
+        start = end - timedelta(days=args.days)
+        range_tag = f"{args.days}d"
+
     print(f"Fetching {args.symbol} 15m/1h/4h from Binance futures (public)…")
-    print(f"Range: {start.date()} → {end.date()}  |  paper equity={args.equity}")
+    print(f"Range: {start.isoformat()} → {end.isoformat()}  |  paper equity={args.equity}")
 
     df_15 = fetch_klines(args.symbol, "15m", start=start, end=end)
     df_1h = fetch_klines(args.symbol, "1h", start=start, end=end)
@@ -118,8 +146,29 @@ def cmd_backtest(args: argparse.Namespace) -> int:
     for k, v in s.items():
         print(f"  {k}: {v}")
 
+    # Trades / signals on focus day (for labeling)
+    if focus_day is not None:
+        day_end = focus_day + timedelta(days=1)
+        day_trades = [
+            t
+            for t in result.trades
+            if t.entry_time is not None and focus_day <= t.entry_time < day_end
+        ]
+        print(f"\n=== Trades with entry on {args.date} UTC ({len(day_trades)}) ===")
+        if not day_trades:
+            print("  (none — look for hooks by eye; bot may have missed)")
+        for t in day_trades:
+            # entry bar open ≈ close_time - 15m
+            open_est = pd.Timestamp(t.entry_time) - pd.Timedelta(minutes=15) + pd.Timedelta(milliseconds=1)
+            print(
+                f"  {t.side:5} hook~open {open_est.strftime('%Y-%m-%d %H:%M')} UTC  "
+                f"entry@{t.entry:.1f} → exit@{t.exit} ({t.exit_reason})  "
+                f"pnl={t.pnl:+.2f} R={t.r_multiple:+.2f}"
+            )
+        print("\nMark gold hooks in chat like:  10 июля HH:MM long/short")
+
     if result.trades:
-        print("\nLast trades:")
+        print("\nLast trades (all window):")
         for t in result.trades[-8:]:
             print(
                 f"  {t.side:5} {t.entry_time} → {t.exit_time}  "
@@ -127,8 +176,6 @@ def cmd_backtest(args: argparse.Namespace) -> int:
             )
 
     if args.csv_out:
-        import pandas as pd
-
         rows = [
             {
                 "symbol": t.symbol,
@@ -151,16 +198,35 @@ def cmd_backtest(args: argparse.Namespace) -> int:
 
     chart_path = args.chart
     if chart_path is None:
-        # default: always write chart for visual tuning
-        chart_path = Path("charts") / f"{args.symbol.lower()}_{args.days}d.html"
+        chart_path = Path("charts") / f"{args.symbol.lower()}_{range_tag}.html"
+
+    # Chart data: optionally only the focus calendar day
+    df_chart = df_15
+    max_bars = args.chart_bars
+    if focus_day is not None and (args.chart_day_only or args.date):
+        # default for --date: show focus day (+ tiny pad for candles edge)
+        day_end = focus_day + timedelta(days=1)
+        # include 6h before for context on the chart
+        chart_start = focus_day - timedelta(hours=6)
+        mask = (df_15["open_time"] >= pd.Timestamp(chart_start)) & (
+            df_15["open_time"] < pd.Timestamp(day_end)
+        )
+        df_chart = df_15.loc[mask].reset_index(drop=True)
+        max_bars = None
+        if args.chart_day_only:
+            mask = (df_15["open_time"] >= pd.Timestamp(focus_day)) & (
+                df_15["open_time"] < pd.Timestamp(day_end)
+            )
+            df_chart = df_15.loc[mask].reset_index(drop=True)
+
     from trader.chart import save_chart
 
     out = save_chart(
-        df_15,
+        df_chart,
         result,
         chart_path,
         symbol=args.symbol,
-        max_bars=args.chart_bars,
+        max_bars=max_bars,
         open_browser=args.open,
     )
     print(f"\nChart: {out.resolve()}")
