@@ -9,7 +9,9 @@ import pandas as pd
 
 from trader.hooks import HookSignal, scan_hooks
 
-ExitReason = Literal["tp", "sl", "structure", "eod", "timeout"]
+ExitReason = Literal["tp", "sl", "liq", "structure", "eod", "timeout"]
+StopKind = Literal["hook", "liquidation", "none"]
+TpKind = Literal["hook_rr", "liq_rr", "pct", "none"]
 
 
 @dataclass
@@ -26,6 +28,8 @@ class Trade:
     notional: float = 0.0
     leverage: float = 1.0
     stake: float = 0.0
+    stop_kind: StopKind = "hook"
+    tp_kind: TpKind = "hook_rr"
     pnl: float = 0.0
     r_multiple: float = 0.0
     exit_reason: ExitReason | None = None
@@ -78,7 +82,10 @@ class BacktestResult:
 class BacktestConfig:
     starting_equity: float = 10_000.0
     risk_pct: float = 0.005  # used when stake_usd is None
-    rr_target: float = 2.0  # TP distance = rr * hook risk unit (if use_tp)
+    # TP: hook_rr → entry ± rr * hook_range; liq_rr → entry ± rr * |entry-liq|;
+    # pct → entry * (1 ± tp_pct)
+    rr_target: float = 1.0  # stake+lev: 1× dist-to-liq (+10% @ 10x); hook mode: 1× hook range
+    tp_pct: float | None = None  # if set, overrides rr (e.g. 0.03 = +3%)
     stop_buffer_pct: float = 0.0005
     require_htf_bias: bool = True
     one_position: bool = True
@@ -88,10 +95,25 @@ class BacktestConfig:
     leverage: float = 1.0  # e.g. 10 → notional = stake * leverage
     use_stop: bool = True
     use_tp: bool = True
+    # stake+leverage → stop at approx liquidation; else hook low/high
+    stop_mode: Literal["auto", "hook", "liquidation", "none"] = "auto"
+
+
+def liquidation_price(entry: float, side: str, leverage: float) -> float | None:
+    """
+    Simplified isolated liquidation: full margin lost when price moves ~1/leverage.
+    long: entry * (1 - 1/lev)   short: entry * (1 + 1/lev)
+    Ignores fees / maintenance margin (paper approx).
+    """
+    if entry <= 0 or leverage <= 1:
+        return None
+    frac = 1.0 / leverage
+    if side == "long":
+        return entry * (1.0 - frac)
+    return entry * (1.0 + frac)
 
 
 def _position_size_risk(equity: float, risk_pct: float, risk_per_unit: float) -> tuple[float, float]:
-    """Return (size, risk_amount) from equity risk %."""
     if risk_per_unit <= 0:
         return 0.0, 0.0
     risk_amount = equity * risk_pct
@@ -99,15 +121,62 @@ def _position_size_risk(equity: float, risk_pct: float, risk_per_unit: float) ->
 
 
 def _position_size_stake(entry: float, stake_usd: float, leverage: float) -> tuple[float, float, float]:
-    """
-    Return (size, notional, stake).
-    size = notional / entry; notional = stake * leverage.
-    """
     if entry <= 0 or stake_usd <= 0 or leverage <= 0:
         return 0.0, 0.0, 0.0
     notional = stake_usd * leverage
     size = notional / entry
     return size, notional, stake_usd
+
+
+def _resolve_stop(
+    sig: HookSignal,
+    cfg: BacktestConfig,
+) -> tuple[float | None, StopKind]:
+    if not cfg.use_stop or cfg.stop_mode == "none":
+        return None, "none"
+
+    mode = cfg.stop_mode
+    if mode == "auto":
+        if cfg.stake_usd is not None and cfg.leverage > 1:
+            mode = "liquidation"
+        else:
+            mode = "hook"
+
+    if mode == "liquidation":
+        liq = liquidation_price(sig.entry, sig.side, cfg.leverage)
+        return liq, "liquidation"
+    return sig.stop, "hook"
+
+
+def _resolve_tp(
+    sig: HookSignal,
+    cfg: BacktestConfig,
+    stop: float | None,
+    stop_kind: StopKind,
+) -> tuple[float | None, TpKind]:
+    if not cfg.use_tp:
+        return None, "none"
+
+    # Explicit % of price wins
+    if cfg.tp_pct is not None and cfg.tp_pct > 0:
+        if sig.side == "long":
+            return sig.entry * (1.0 + cfg.tp_pct), "pct"
+        return sig.entry * (1.0 - cfg.tp_pct), "pct"
+
+    # Wider take: prefer distance to liquidation when that is the stop
+    if stop is not None and stop_kind == "liquidation":
+        r_unit = abs(sig.entry - stop)
+        if r_unit > 0:
+            if sig.side == "long":
+                return sig.entry + cfg.rr_target * r_unit, "liq_rr"
+            return sig.entry - cfg.rr_target * r_unit, "liq_rr"
+
+    # Fallback: hook range × rr
+    if sig.risk_per_unit > 0:
+        if sig.side == "long":
+            return sig.entry + cfg.rr_target * sig.risk_per_unit, "hook_rr"
+        return sig.entry - cfg.rr_target * sig.risk_per_unit, "hook_rr"
+    return None, "none"
 
 
 def run_backtest(
@@ -160,24 +229,21 @@ def run_backtest(
                 size, notional, stake = _position_size_stake(
                     sig.entry, cfg.stake_usd, cfg.leverage
                 )
-                risk_amount = stake  # R = pnl / stake
+                risk_amount = stake
+                lev = cfg.leverage
             else:
                 size, risk_amount = _position_size_risk(
                     equity, cfg.risk_pct, sig.risk_per_unit
                 )
                 notional = size * sig.entry
                 stake = risk_amount
+                lev = 1.0
 
             if size <= 0:
                 continue
 
-            stop: float | None = sig.stop if cfg.use_stop else None
-            tp: float | None = None
-            if cfg.use_tp and sig.risk_per_unit > 0:
-                if sig.side == "long":
-                    tp = sig.entry + cfg.rr_target * sig.risk_per_unit
-                else:
-                    tp = sig.entry - cfg.rr_target * sig.risk_per_unit
+            stop, stop_kind = _resolve_stop(sig, cfg)
+            tp, tp_kind = _resolve_tp(sig, cfg, stop, stop_kind)
 
             open_trade = Trade(
                 side=sig.side,
@@ -190,8 +256,10 @@ def run_backtest(
                 size=size,
                 risk_amount=risk_amount,
                 notional=notional,
-                leverage=cfg.leverage if cfg.stake_usd is not None else 1.0,
+                leverage=lev,
                 stake=stake,
+                stop_kind=stop_kind,
+                tp_kind=tp_kind,
                 symbol=symbol,
             )
             entry_index = i
@@ -221,12 +289,14 @@ def _check_exit(
 
     if trade.side == "long":
         if cfg.use_stop and trade.stop is not None and low <= trade.stop:
-            return trade.stop, "sl"
+            reason: ExitReason = "liq" if trade.stop_kind == "liquidation" else "sl"
+            return trade.stop, reason
         if cfg.use_tp and trade.tp is not None and high >= trade.tp:
             return trade.tp, "tp"
     else:
         if cfg.use_stop and trade.stop is not None and high >= trade.stop:
-            return trade.stop, "sl"
+            reason = "liq" if trade.stop_kind == "liquidation" else "sl"
+            return trade.stop, reason
         if cfg.use_tp and trade.tp is not None and low <= trade.tp:
             return trade.tp, "tp"
     return None, None
@@ -240,5 +310,8 @@ def _close_trade(trade: Trade, exit_px: float, exit_time: pd.Timestamp, reason: 
         trade.pnl = (exit_px - trade.entry) * trade.size
     else:
         trade.pnl = (trade.entry - exit_px) * trade.size
+    # Cap loss at -stake for liq (can't lose more than margin in this model)
+    if reason == "liq" and trade.stake > 0:
+        trade.pnl = max(trade.pnl, -trade.stake)
     risk = trade.risk_amount if trade.risk_amount else 1.0
     trade.r_multiple = trade.pnl / risk

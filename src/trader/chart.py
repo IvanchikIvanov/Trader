@@ -80,9 +80,10 @@ def plot_backtest(
     for i, t in enumerate(trades):
         stop_s = f"{t.stop:.2f}" if t.stop is not None else "off"
         tp_s = f"{t.tp:.2f}" if t.tp is not None else "off"
+        sk = getattr(t, "stop_kind", "") or ""
         hover = (
             f"#{i+1} {t.side.upper()}<br>"
-            f"entry={t.entry:.2f} stop={stop_s} tp={tp_s}<br>"
+            f"entry={t.entry:.2f} stop={stop_s} ({sk}) tp={tp_s}<br>"
             f"exit={t.exit} ({t.exit_reason})<br>"
             f"pnl={t.pnl:+.2f} R={t.r_multiple:+.2f}"
             + (f"<br>stake={t.stake:.0f} lev={t.leverage:.0f}x" if t.stake else "")

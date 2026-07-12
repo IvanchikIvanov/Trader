@@ -43,7 +43,18 @@ def main(argv: list[str] | None = None) -> int:
     )
     b.add_argument("--equity", type=float, default=10_000.0)
     b.add_argument("--risk-pct", type=float, default=0.005, help="Risk per trade, e.g. 0.005 = 0.5%% (ignored if --stake)")
-    b.add_argument("--rr", type=float, default=2.0, help="Take profit R multiple vs hook range (2 = 1:2)")
+    b.add_argument(
+        "--rr",
+        type=float,
+        default=1.0,
+        help="TP multiple. Stake+10x: 1 = +10%% to TP (1× dist to liq). Hook-only mode: × hook range. Try 2 for wider.",
+    )
+    b.add_argument(
+        "--tp-pct",
+        type=float,
+        default=None,
+        help="Optional TP as %% of price (e.g. 0.03 = +3%% long). Overrides --rr",
+    )
     b.add_argument(
         "--stake",
         type=float,
@@ -51,7 +62,11 @@ def main(argv: list[str] | None = None) -> int:
         help="Fixed margin per trade in USD (e.g. 30). With --leverage 10 → notional 300",
     )
     b.add_argument("--leverage", type=float, default=1.0, help="Leverage on --stake (e.g. 10)")
-    b.add_argument("--no-stop", action="store_true", help="Disable stop-loss exits (TP/timeout/eod only)")
+    b.add_argument(
+        "--no-stop",
+        action="store_true",
+        help="Disable stop/liquidation exits (TP/timeout/eod only)",
+    )
     b.add_argument("--no-tp", action="store_true", help="Disable take-profit exits")
     b.add_argument("--no-htf", action="store_true", help="Ignore 1h/4h bias filter")
     b.add_argument("--csv-out", type=Path, default=None, help="Write trades CSV")
@@ -163,11 +178,18 @@ def cmd_backtest(args: argparse.Namespace) -> int:
     print(f"Fetching {args.symbol} 15m/1h/4h from Binance futures (public)…")
     print(f"Range: {start.isoformat()} → {end.isoformat()}  |  paper equity={args.equity}")
     if args.stake is not None:
+        stop_desc = "OFF" if args.no_stop else f"LIQUIDATION (~1/{args.leverage:.0f} move)"
+        if args.tp_pct is not None:
+            tp_desc = f"{args.tp_pct*100:.1f}% price"
+        elif args.no_tp:
+            tp_desc = "OFF"
+        else:
+            tp_desc = f"{args.rr:.0f}× dist-to-liq"
         print(
             f"Mode: stake=${args.stake:.0f} × lev {args.leverage:.0f}x "
-            f"→ notional ${args.stake * args.leverage:.0f}/trade  |  "
-            f"stop={'OFF' if args.no_stop else 'ON'}  tp={'OFF' if args.no_tp else 'ON'}"
+            f"→ notional ${args.stake * args.leverage:.0f}/trade"
         )
+        print(f"  stop={stop_desc}  |  tp={tp_desc}")
 
     df_15 = fetch_klines(args.symbol, "15m", start=start, end=end)
     df_1h = fetch_klines(args.symbol, "1h", start=start, end=end)
@@ -178,19 +200,25 @@ def cmd_backtest(args: argparse.Namespace) -> int:
         starting_equity=args.equity,
         risk_pct=args.risk_pct,
         rr_target=args.rr,
+        tp_pct=args.tp_pct,
         require_htf_bias=not args.no_htf,
         stake_usd=args.stake,
         leverage=args.leverage,
         use_stop=not args.no_stop,
         use_tp=not args.no_tp,
+        stop_mode="none" if args.no_stop else "auto",
     )
     result = run_backtest(df_15, df_1h, df_4h, symbol=args.symbol, config=cfg)
     s = result.summary()
     print("\n=== PAPER BACKTEST RESULT (no real money) ===")
     for k, v in s.items():
         print(f"  {k}: {v}")
-    if args.no_stop:
-        print("  note: NO STOP — exits via TP / timeout / end only (wick SL ignored)")
+    if result.trades:
+        t0 = result.trades[0]
+        print(
+            f"  example levels: stop_kind={t0.stop_kind} tp_kind={t0.tp_kind} "
+            f"entry={t0.entry:.2f} stop={t0.stop} tp={t0.tp}"
+        )
 
     # Trades on focus day or multi-day window (for labeling)
     label_start = focus_day
