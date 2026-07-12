@@ -315,8 +315,8 @@ def cmd_backtest(args: argparse.Namespace) -> int:
         open_browser=args.open,
     )
     print(f"\nChart: {out.resolve()}")
-    print("  ▲ green = long entry · ▼ red = short entry · ✕ = exit")
-    print("  dashed red = stop · dashed teal = TP · zoom with rangeslider")
+    print("  TradingView-style: scroll=zoom, drag=pan, MSK time axis")
+    print("  ▲ long · ▼ short · ● exit · red line=stop/liq · teal=TP")
 
     print("\nReminder: this is simulation only. Fees/slippage not fully modeled.")
     return 0

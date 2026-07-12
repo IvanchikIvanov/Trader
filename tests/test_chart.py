@@ -2,10 +2,11 @@
 
 from pathlib import Path
 
+import pandas as pd
+
 from trader.backtest import BacktestConfig, run_backtest
 from trader.chart import plot_backtest, save_chart
 from trader.data import synthetic_trend_with_long_hook
-import pandas as pd
 
 
 def _df_with_followthrough():
@@ -32,19 +33,22 @@ def _df_with_followthrough():
     return pd.concat([df, pd.DataFrame(rows)], ignore_index=True)
 
 
-def test_plot_backtest_builds_figure():
+def test_plot_backtest_builds_payload():
     df = _df_with_followthrough()
     result = run_backtest(df, config=BacktestConfig(require_htf_bias=False))
-    fig = plot_backtest(df, result, symbol="TEST")
-    assert fig is not None
-    assert len(fig.data) >= 2
+    payload = plot_backtest(df, result, symbol="TEST")
+    assert payload is not None
+    assert "candles" in payload
+    assert len(payload["candles"]) >= 2
+    assert "markers" in payload
 
 
-def test_save_chart_html(tmp_path: Path):
+def test_save_chart_html_tv(tmp_path: Path):
     df = _df_with_followthrough()
     result = run_backtest(df, config=BacktestConfig(require_htf_bias=False))
     out = tmp_path / "t.html"
     save_chart(df, result, out, symbol="TEST")
     assert out.exists()
     text = out.read_text(encoding="utf-8")
-    assert "plotly" in text.lower()
+    assert "lightweight-charts" in text.lower()
+    assert "Europe/Moscow" in text or "Москва" in text

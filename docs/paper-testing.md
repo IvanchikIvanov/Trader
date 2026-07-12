@@ -33,21 +33,20 @@ python -m trader backtest --symbol BTCUSDT --days 30
 python -m trader backtest --symbol ETHUSDT --days 60 --risk-pct 0.005 --rr 2 --csv-out data/eth_trades.csv --open
 ```
 
-После прогона открывается (или сохраняется) **интерактивный HTML**:
+После прогона — **TradingView-style HTML** (Lightweight Charts):
 
-- свечи 15m  
-- ▲ long / ▼ short — входы  
-- ✕ — выходы (цвет: профит/убыток)  
-- пунктир: stop (красный) и TP (бирюзовый)  
-- снизу — equity  
-- rangeslider — зум участка для подстройки правил  
+- свечи как в TV (тёмная тема, крест, зум скроллом, drag)  
+- ▲ long / ▼ short / ● exit  
+- price lines: stop/liq и TP  
+- volume + equity снизу  
+- **время на оси — Москва (MSK)**  
+- таблица сделок под графиком  
 
-Файлы по умолчанию: `charts/btcusdt_30d.html` и т.п.
-
-Чтобы смотреть только хвост (удобнее крутить):
+Файлы: `charts/btcusdt_7d.html` и т.п.
 
 ```bash
-python -m trader backtest --symbol BTCUSDT --days 30 --chart-bars 400 --open
+python -m trader backtest --symbol BTCUSDT --days 7 --stake 30 --leverage 10 --open
+python -m trader backtest --symbol ETHUSDT --days 7 --chart-bars 400 --open
 ```
 
 | Флаг | Смысл | Default |

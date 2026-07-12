@@ -14,8 +14,8 @@ python -m pip install -r requirements.txt
 $env:PYTHONPATH = "src"
 python -m pytest tests/ -q
 python -m trader backtest --symbol BTCUSDT --days 30 --open
-# chart → charts/btcusdt_30d.html  (entries ▲▼, exits ✕, SL/TP, equity)
-python -m trader backtest --symbol ETHUSDT --days 60 --rr 2 --chart-bars 500 --open
+# chart → charts/*.html  (TradingView-style: zoom, MSK time, markers)
+python -m trader backtest --symbol ETHUSDT --days 7 --stake 30 --leverage 10 --open
 ```
 
 ## Loop Engineering
