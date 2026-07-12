@@ -8,7 +8,7 @@
 | Field | Value |
 |-------|--------|
 | Mode | **Paper first** (no live keys in repo / loops) |
-| Stage | Pattern **крючки (hooks)** specified — risk numbers still TBD |
+| Stage | Pattern **крючки (hooks)** long **+ short** locked — risk numbers still TBD |
 | Last updated | 2026-07-13 |
 
 ## Markets & instruments
@@ -19,6 +19,7 @@
 | **Symbols** | **BTC** and **ETH** (e.g. BTCUSDT / ETHUSDT perps — venue TBD) |
 | **Style** | **Intraday** |
 | **Venue** | TBD |
+| **Sides** | **Long hooks** and **short hooks** |
 
 ## Timeframes
 
@@ -27,24 +28,48 @@
 | Context / trend | **4h**, **1h** |
 | Setup / entry candle | **15m** (primary for hook candle; confirm with higher TF bias) |
 
-Use higher TF (1h/4h) to confirm **uptrend**; execute hook logic primarily on **15m** unless human says otherwise.
+Use higher TF (1h/4h) for **bias** (up → long hooks only; down → short hooks only). Execute hook logic primarily on **15m**.
 
 ---
 
 ## Pattern name
 
-**Крючки (Hooks)** — long continuation after a shallow pullback in an uptrend.
+**Крючки (Hooks)** — trend continuation after a shallow counter-move pullback.
 
-### Core idea
+| Side | Idea |
+|------|------|
+| **Long** | Uptrend → new high → small red pullback (hook) → long on red close |
+| **Short** | Downtrend → new low → small green pullback (hook) → short on green close |
 
-1. Find **ascending** price action.  
-2. After a **new high**, wait for a **small pullback down** (the hook).  
-3. Enter **long on close** of that red pullback candle.  
-4. Goal: catch **trend continuation**.
+Both sides share the same R:R, candle-count, and “enter on close only” discipline.
+
+---
+
+## Symmetry cheat sheet
+
+| | Long hook | Short hook |
+|--|-----------|------------|
+| Trend | Up (HH/HL) or clear turn up | Down (LH/LL) or clear turn down |
+| Impulse | New **high** | New **low** |
+| Pullback | 1–3 **red** candles | 1–3 **green** candles |
+| Hook candle | Last/only **red** of pullback | Last/only **green** of pullback |
+| Entry | Close of hook (market / limit @ close) | Same |
+| Stop | **Below** hook **low** (+ optional air) | **Above** hook **high** (+ optional air) |
+| Min target | 1:2 or 1:3 vs stop | Same |
+| Partial | Nearest **resistance** | Nearest **support** |
+| Structure break | Break **below** hook low → full exit | Break **above** hook high → full exit |
+| Trail | New **higher lows** | New **lower highs** |
 
 ---
 
 ## Long setup — step by step
+
+### Core idea (long)
+
+1. Find **ascending** price action.  
+2. After a **new high**, wait for a **small pullback down** (the hook).  
+3. Enter **long on close** of that red pullback candle.  
+4. Goal: catch **uptrend continuation**.
 
 ### 1. Direction filter (bias)
 
@@ -57,9 +82,9 @@ Evidence:
 
 If trend is down or unclear → **no long hooks**.
 
-Higher TF (1h / 4h) should not contradict: prefer longs only when 1h/4h bias is up or neutralizing into up.
+Higher TF (1h / 4h): prefer longs only when bias is up or neutralizing into up.
 
-### 2. Form the hook
+### 2. Form the long hook
 
 After price prints a **new high** and pushes up:
 
@@ -69,47 +94,36 @@ After price prints a **new high** and pushes up:
 | Hook length | **1–3 consecutive red candles** |
 | Hook candle | The **last** (or only) **red** candle of that pullback = **the hook** |
 
-Notes:
-
-- Green candles inside the pullback that break the “1–3 red” simplicity → treat carefully; default is **only pure 1–3 red** pullbacks.  
-- Hook is defined on the **entry TF (15m)** unless specified otherwise.
+Default: **only pure 1–3 red** pullbacks. Hook on **15m** unless specified otherwise.
 
 ### 3. Entry (long)
 
 | | |
 |--|--|
-| Trigger | **Close** of the hook candle (close of the red pullback candle) |
+| Trigger | **Close** of the red hook candle |
 | Order | **Market** at close, or **limit** at that close price |
-| Side | **Long only** for this pattern (short hook rules not defined yet) |
+| Side | **Long** |
 
-No entry:
+No entry: before close; 4+ red candles; not a defined red pullback.
 
-- Before the hook candle **closes**  
-- If more than **3** red candles already (pullback too deep / not a hook)  
-- If pullback is not red-candle based as defined  
-
-### 4. Stop-loss
+### 4. Stop-loss (long)
 
 | | |
 |--|--|
-| Placement | **Below the hook low** (below the low of the red hook candle) |
-| Buffer | Optional small buffer under that low (“air”) — size TBD in risk config |
-| Invalidation | Price **breaks below hook low** → structure broken → full exit |
+| Placement | **Below the hook low** |
+| Buffer | Optional small air under that low — size TBD |
+| Invalidation | Break **below** hook low → full exit |
 
-### 5. Take-profit & exit
+### 5. Take-profit & exit (long)
 
 | Exit type | Rule |
 |-----------|------|
-| Min R:R | Target at least **1:2** or **1:3** vs stop distance |
-| Partial | Optional scale-out at nearest **resistance** |
-| Hard fail | Full exit if price **breaks hook low** to the downside |
-| Trail | Optional trailing using **new higher lows** as structure advances |
+| Min R:R | **1:2** or **1:3** vs stop distance |
+| Partial | Optional at nearest **resistance** |
+| Hard fail | Break of hook **low** |
+| Trail | Optional trailing on new **higher lows** |
 
----
-
-## Formal decision checklist (long)
-
-Use this in detectors / tests:
+### Checklist (long)
 
 ```
 [ ] 1h and/or 4h bias: uptrend or clear bullish turn
@@ -122,18 +136,111 @@ Use this in detectors / tests:
 [ ] Exit all if low of hook is broken
 ```
 
-Fail closed: if any box is false → **no trade**.
+Fail closed → **no trade**.
+
+---
+
+## Short setup — step by step
+
+### Core idea (short)
+
+1. Find **descending** price action.  
+2. After a **new low**, wait for a **small pullback up** (the hook).  
+3. Enter **short on close** of that green pullback candle.  
+4. Goal: catch **downtrend continuation**.
+
+### 1. Direction filter (bias)
+
+Price must be in a **downtrend**, or after a **clear turn down**.
+
+Evidence:
+
+- Lower highs (LH) and lower lows (LL), or  
+- Clear bearish structure after a topping reversal  
+
+If trend is up or unclear → **no short hooks**.
+
+Higher TF (1h / 4h): prefer shorts only when bias is down or neutralizing into down.
+
+### 2. Form the short hook
+
+After price prints a **new low** and pushes down:
+
+| Rule | Spec |
+|------|------|
+| Pullback | Price starts correcting **up** |
+| Hook length | **1–3 consecutive green candles** |
+| Hook candle | The **last** (or only) **green** candle of that pullback = **the short hook** |
+
+Default: **only pure 1–3 green** pullbacks. Hook on **15m** unless specified otherwise.
+
+### 3. Entry (short)
+
+| | |
+|--|--|
+| Trigger | **Close** of the green hook candle |
+| Order | **Market** at close, or **limit** at that close price |
+| Side | **Short** |
+
+No entry: before close; 4+ green candles; not a defined green pullback.
+
+### 4. Stop-loss (short)
+
+| | |
+|--|--|
+| Placement | **Above the hook high** |
+| Buffer | Optional small air above that high — size TBD |
+| Invalidation | Break **above** hook high → full exit |
+
+### 5. Take-profit & exit (short)
+
+| Exit type | Rule |
+|-----------|------|
+| Min R:R | **1:2** or **1:3** vs stop distance |
+| Partial | Optional at nearest **support** |
+| Hard fail | Break of hook **high** |
+| Trail | Optional trailing on new **lower highs** |
+
+### Checklist (short)
+
+```
+[ ] 1h and/or 4h bias: downtrend or clear bearish turn
+[ ] On 15m: recent new low (LL) in the impulse
+[ ] Pullback = 1..3 consecutive green candles after that impulse
+[ ] Current bar is the last green of that pullback and has CLOSED
+[ ] Entry short at close (market) or limit @ close
+[ ] SL above hook candle high (+ optional buffer)
+[ ] TP plan: min 1:2 or 1:3; optional partial @ support; trail LH
+[ ] Exit all if high of hook is broken
+```
+
+Fail closed → **no trade**.
 
 ---
 
 ## Anti-patterns (do NOT take)
 
-- Counter-trend hooks in a clear **downtrend**  
-- Pullback of **4+** red candles (not a “small” hook)  
-- Entry **before** hook candle close (wick chasing mid-bar)  
-- Hook that is not a red close (doji / green “pullback” without defined rules)  
-- No prior **new high** / impulse — random red candle is not a hook  
-- Overnight hold of a failed structure without human rule (intraday mandate)
+### Both sides
+
+- Entry **before** hook candle **close**  
+- Pullback of **4+** candles of the pullback color  
+- Random candle without prior impulse (no new high for long / no new low for short)  
+- Overnight hold of broken structure without human rule (intraday)  
+- Trading **against** higher-TF bias (long in clear downtrend / short in clear uptrend)
+
+### Long-specific
+
+- Long hook in clear **downtrend**  
+- “Hook” that is not a **red** close as defined  
+
+### Short-specific
+
+- Short hook in clear **uptrend**  
+- “Hook” that is not a **green** close as defined  
+
+### Conflict rule
+
+If both a long and short setup could be argued on the same bar → **no trade** (fail closed). Bias must be unambiguous.
 
 ---
 
@@ -142,13 +249,14 @@ Fail closed: if any box is false → **no trade**.
 | Rule | Value | Status |
 |------|--------|--------|
 | Risk per trade | TBD % of equity | **open** |
-| SL buffer under hook low | TBD ticks/% | **open** |
+| SL buffer (air) | TBD ticks/% under low (long) / over high (short) | **open** |
 | Prefer R:R | **1:2 min**, prefer **1:3** | set |
-| Max concurrent positions | TBD (BTC/ETH) | **open** |
+| Max concurrent positions | TBD (BTC/ETH, long+short) | **open** |
 | Max daily drawdown → stop day | TBD | **open** |
 | Max leverage | TBD | **open** |
-| Side | **Long hooks only** for now | set |
+| Side | **Long hooks + short hooks** | set |
 | Flat by session end | Yes (intraday) — TZ TBD | open |
+| Same-symbol hedge (long+short BTC) | Default **no** — one position per symbol | open |
 
 ---
 
@@ -165,17 +273,28 @@ Fail closed: if any box is false → **no trade**.
 
 ## Implementation sketch (for future code)
 
-Suggested modules (do not invent extra edge):
-
 1. **Market data** — OHLCV 15m / 1h / 4h for BTC & ETH  
-2. **Trend filter** — HH/HL or structure on 1h/4h  
-3. **Hook detector** — after local HH, count 1–3 red closes; mark hook candle  
-4. **Signal** — long at hook close; SL = hook.low − buffer; TP = entry + k×R  
-5. **Risk gate** — size from risk%; block if daily DD / max positions hit  
-6. **Paper broker** — fill market/limit; log trades  
-7. **Exits** — TP hit, partial resistance, trail HL, or hook low break  
+2. **Trend filter** — HH/HL (long bias) vs LH/LL (short bias) on 1h/4h  
+3. **Hook detector**  
+   - Long: after local HH → 1–3 red → hook = last red  
+   - Short: after local LL → 1–3 green → hook = last green  
+4. **Signal**  
+   - Long: entry @ close, SL = hook.low − buffer, TP = entry + k×R  
+   - Short: entry @ close, SL = hook.high + buffer, TP = entry − k×R  
+5. **Risk gate** — size from risk%; block if daily DD / max positions  
+6. **Paper broker** — market/limit fills; log trades  
+7. **Exits** — TP, partial S/R, trail, or structure break (hook low/high)  
 
-Tests: fixture candles for valid hook, 4-red reject, counter-trend reject, pre-close reject.
+**Tests (minimum):**
+
+| Case | Expect |
+|------|--------|
+| Valid long hook | signal long |
+| Valid short hook | signal short |
+| 4 red / 4 green pullback | reject |
+| Long in downtrend / short in uptrend | reject |
+| Entry mid-bar (not closed) | reject |
+| Ambiguous dual setup | reject |
 
 ---
 
@@ -185,8 +304,8 @@ Tests: fixture candles for valid hook, 4-red reject, counter-trend reject, pre-c
 2. Risk % per trade and max leverage?  
 3. Exact SL buffer (ticks or %)?  
 4. Session timezone / “flat by when”?  
-5. Short side: mirror “крючки” down later?  
-6. Must **all** of 15m+1h+4h agree, or is 15m enough if 1h up?  
+5. Must **all** of 15m+1h+4h agree, or is 15m enough if 1h aligned?  
+6. Max one position per symbol — confirm?  
 
 ---
 
@@ -195,3 +314,4 @@ Tests: fixture candles for valid hook, 4-red reject, counter-trend reject, pre-c
 | Date | Change |
 |------|--------|
 | 2026-07-13 | Assets BTC/ETH futures intraday; pattern **крючки** long rules locked |
+| 2026-07-13 | **Short hooks** mirrored and locked (green 1–3 pullback, SL above high) |

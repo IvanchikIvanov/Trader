@@ -17,10 +17,12 @@
 
 ## Trading scope
 - Only BTC and ETH crypto futures, intraday (see docs/trading-brief.md)
-- Pattern: **крючки (hooks)** — long only for now; full rules in docs/trading-brief.md
+- Pattern: **крючки (hooks)** — long AND short; full rules in docs/trading-brief.md
 - Timeframes: context 4h + 1h, entry on 15m; do not invent other TFs or patterns
-- Long hooks only: uptrend/HH-HL → 1–3 red pullback candles → long on hook close → SL under hook low → min R:R 1:2–1:3
-- Do not invent other assets, swing/position holds, or short-hook rules without human update to trading-brief.md
+- Long: uptrend/HH-HL → 1–3 red pullback → long on red hook close → SL under hook low → min R:R 1:2–1:3
+- Short: downtrend/LH-LL → 1–3 green pullback → short on green hook close → SL above hook high → min R:R 1:2–1:3
+- Fail closed on ambiguous bias or dual long+short setup on same bar
+- Do not invent other assets, swing/position holds, or extra patterns without human update to trading-brief.md
 - Paper/sim only until human explicitly enables live
 - Never place, cancel, or size live orders; never auto-trade from loops
 - Never change risk %, leverage, or max positions without human approval in trading-brief.md
