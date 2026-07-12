@@ -15,6 +15,16 @@
 - Never edit infrastructure configs without human approval
 - Never place, cancel, or size live trading orders
 
+## Trading scope
+- Only BTC and ETH crypto futures, intraday (see docs/trading-brief.md)
+- Pattern: **крючки (hooks)** — long only for now; full rules in docs/trading-brief.md
+- Timeframes: context 4h + 1h, entry on 15m; do not invent other TFs or patterns
+- Long hooks only: uptrend/HH-HL → 1–3 red pullback candles → long on hook close → SL under hook low → min R:R 1:2–1:3
+- Do not invent other assets, swing/position holds, or short-hook rules without human update to trading-brief.md
+- Paper/sim only until human explicitly enables live
+- Never place, cancel, or size live orders; never auto-trade from loops
+- Never change risk %, leverage, or max positions without human approval in trading-brief.md
+
 ## Code
 - Always run tests before proposing a fix
 - Never disable tests to make CI green

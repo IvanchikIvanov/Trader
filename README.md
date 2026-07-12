@@ -2,7 +2,8 @@
 
 Trading-related project scaffolded with [Loop Engineering](https://github.com/cobusgreyling/loop-engineering) for Grok agents.
 
-**→ [Как оптимально использовать](docs/GUIDE.md)** — ежедневный ритуал, L1→L3, бюджет, safety, cheat sheet.
+**→ [Как оптимально использовать](docs/GUIDE.md)** — ежедневный ритуал, L1→L3, бюджет, safety, cheat sheet.  
+**→ [Trading brief](docs/trading-brief.md)** — BTC/ETH futures, intraday, pattern **крючки (hooks)** long.
 
 ## Loop Engineering
 

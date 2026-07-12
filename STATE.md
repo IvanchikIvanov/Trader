@@ -4,8 +4,11 @@ Last run: never
 
 ## High Priority (loop is acting or waiting on human)
 
-- [ ] Bootstrap app code and CI so triage has real signal
-- [ ] Confirm GitHub remote when ready (`git remote add origin …`)
+- [x] Pattern **крючки** written to `docs/trading-brief.md` (long hooks BTC/ETH, 15m/1h/4h)
+- [ ] Confirm exchange, risk %/trade, leverage, SL buffer, session TZ
+- [ ] Scaffold: OHLCV → trend filter → hook detector → paper risk/execution
+- [ ] Unit tests: valid hook, 4-red reject, counter-trend reject, pre-close reject
+- [ ] CI so loops have real signal
 
 ## Watch List
 
